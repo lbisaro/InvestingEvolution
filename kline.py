@@ -1,0 +1,113 @@
+import local__config as local
+import database as db
+
+from datetime import datetime, timedelta
+import pandas as pd
+from binance.client import Client
+
+default_start_str = '2022-08-01 00:00:00 UTC-3'
+
+def update(symbol):
+    try:
+        # Obteniendo la fecha y hora de ultima vela registrada en horario UTC
+        query = "SELECT * FROM klines_1m WHERE symbol = '" +symbol+"' ORDER BY datetime DESC LIMIT 1"
+
+        last = pd.read_sql(sql=query,con=db.engine)
+        if last['datetime'].count()== 1:
+            last['datetime'] = pd.to_datetime(last['datetime'], unit='ms') + pd.Timedelta('1 min') + pd.Timedelta('3 hr')
+            start_str = last['datetime'].iloc[0].strftime('%Y-%m-%d %X')
+        else:
+            start_str = default_start_str
+
+        #Conectando a Binance sin API-KEY 
+        client = Client()
+
+        klines = client.get_historical_klines(
+            #se buscan velas hasta un minuto antes del minuto actual para que se registre la vela cerrada en la base de datos
+            symbol=symbol, interval='1m', start_str=start_str,end_str='1 minute ago')
+        if klines:
+            df = pd.DataFrame(klines)
+            df = df.iloc[:, :6]
+            df.columns = ["datetime", "open", "high", "low", "close", "volume"]
+            df['open'] = df['open'].astype('float')
+            df['high'] = df['high'].astype('float')
+            df['low'] = df['low'].astype('float')
+            df['close'] = df['close'].astype('float')
+            df['volume'] = df['volume'].astype('float')
+            df['datetime'] = pd.to_datetime(
+                df['datetime'], unit='ms') - pd.Timedelta('3 hr')
+            df['symbol'] = symbol
+        
+            df.to_sql('klines_1m', con=db.engine, index=False,
+                    if_exists='append', chunksize=1000)
+        return True
+        
+    except Exception as e:
+        exit(f"ERROR - kline.py :: update - No fue posible actualizar velas: {e}")
+        
+
+# interval: 1m 5m 15m 30m 1h 4h 1d 
+def get(symbol,interval,limit):
+    interval_str = None
+    if interval == '1m':
+        interval_str = '1T'    
+        delta_time = timedelta(minutes = (limit)+1) 
+        from_datetime = (datetime.utcnow() - delta_time - timedelta(hours = 3) ).strftime('%Y-%m-%d %H:%M')
+    
+    elif interval == '5m':
+        interval_str = '5T'  
+        delta_time = timedelta(minutes = (limit*5))
+        from_datetime = (datetime.utcnow() - delta_time - timedelta(hours = 3) ).strftime('%Y-%m-%d %H:%M')
+      
+    elif interval == '15m':
+        interval_str = '15T'    
+        delta_time = timedelta(minutes = (limit*15))
+        from_datetime = (datetime.utcnow() - delta_time - timedelta(hours = 3) ).strftime('%Y-%m-%d %H:%M')
+
+    elif interval == '30m':
+        interval_str = '30T'    
+        delta_time = timedelta(minutes = (limit*30))
+        from_datetime = (datetime.utcnow() - delta_time - timedelta(hours = 3) ).strftime('%Y-%m-%d %H:%M')
+
+    elif interval == '1h':
+        interval_str = '1H'    
+        delta_time = timedelta(hours = (limit))
+        from_datetime = (datetime.utcnow() - delta_time - timedelta(hours = 3) ).strftime('%Y-%m-%d %H')+':00'
+
+    elif interval == '4h':
+        interval_str = '4H'    
+        delta_time = timedelta(hours = (limit*4))
+        from_datetime = (datetime.utcnow() - delta_time - timedelta(hours = 3) ).strftime('%Y-%m-%d %H')+':00'
+
+    elif interval == '1d':
+        interval_str = 'D'    
+        delta_time = timedelta(days = (limit))    
+        from_datetime = (datetime.utcnow() - delta_time - timedelta(hours = 3) ).strftime('%Y-%m-%d')+'00:00'
+    
+    
+    print('from_datetime',from_datetime)
+    if not interval_str:
+        exit('ERROR - kline.py :: get - Se debe especificar un interval valido ['+interval+']')
+        
+    query = None
+    query = "SELECT * FROM klines_1m WHERE symbol = '" +symbol+"' AND datetime >= '"+from_datetime+"' ORDER BY datetime DESC"
+    klines = pd.read_sql(sql=query,con=db.engine)
+    klines.sort_values(by="datetime",inplace=True)
+
+    if interval == '1m':
+        return klines
+    else:
+        agg_funcs = {
+            "open": "first",
+            "high": "max",
+            "low": "min",
+            "close": "last",
+            "volume": "sum",
+        }   
+        
+        if interval_str:
+            return klines.resample(interval_str, on="datetime").agg(agg_funcs)
+
+   
+    
+    
