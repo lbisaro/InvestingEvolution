@@ -12,7 +12,7 @@ import logging
 
 # Configura el logging
 logging.basicConfig(filename='bot.log', filemode='a', format='%(name)s - %(levelname)s - %(message)s')
-logging.warn("Inicio", exc_info=False)
+logging.warning("Inicio", exc_info=False)
 
 #Conectar con Telegram
 chatid=local.LOC_TLGRM_CHATID
