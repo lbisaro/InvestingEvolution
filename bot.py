@@ -8,12 +8,19 @@ import pandas as pd
 from datetime import datetime, timedelta
 import telebot
 from binance.client import Client
+import logging
+
+# Configura el logging
+logging.basicConfig(filename='bot.log', filemode='a', format='%(name)s - %(levelname)s - %(message)s')
+logging.warn("Inicio", exc_info=False)
 
 #Conectar con Telegram
 chatid=local.LOC_TLGRM_CHATID
 tb = telebot.TeleBot(local.LOC_TLGRM_TK)
 
-#tb.send_message(chatid, "Mensaje")
+
+#tb.send_message(chatid, "Mensaje ✅ uno 🔻 dos ")
+
 
 
 #Conectar Binance
@@ -39,7 +46,11 @@ if kline.update(SYMBOL):
     msg_text = SYMBOL+" "+KLINE_INTERVAL+"\n"+signal+"\n"+str(price)
         
     if signal != 'NEUTRO':
-        msg_text = SYMBOL+" "+KLINE_INTERVAL+"\n"+signal+"\n"+str(price)
+        if signal == 'COMPRA':
+            emoji = '✅'
+        elif signal == 'VENTA':
+            emoji = '🔻'
+        msg_text = SYMBOL+" "+KLINE_INTERVAL+"\n"+emoji+" "+signal+"\n"+str(price)
         tb.send_message(chatid, msg_text)
 
     print(msg_text)

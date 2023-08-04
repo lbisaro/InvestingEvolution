@@ -1,0 +1,6 @@
+pip install sqlalchemy
+pip install pymysql
+pip install python-binance
+pip install ta
+pip install telebot
+pip install requests
