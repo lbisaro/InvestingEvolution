@@ -11,7 +11,7 @@ from binance.client import Client
 import logging
 
 # Configura el logging
-logging.basicConfig(filename='bot.log', filemode='a', format='%(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(filename='bot.log', filemode='a', format='%(asctime)s %(name)s - %(levelname)s - %(message)s',datefmt='%Y-%m-%d %H:%M:%S')
 logging.warning("Inicio", exc_info=False)
 
 #Conectar con Telegram
