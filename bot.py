@@ -32,7 +32,7 @@ class Bot:
 
     #Conectar Binance
     client = Client(local.LOC_BNC_AK, local.LOC_BNC_SK, testnet=local.LOC_BNC_TESNET)
-    logging.warning("Inicio", exc_info=False)
+    #logging.warning("Inicio", exc_info=False)
 
 
 
@@ -40,7 +40,7 @@ class Bot:
 
 
     def start(self):
-        logging.warning("Start", exc_info=False)
+        #logging.warning("Start", exc_info=False)
         if kline.update(self.SYMBOL):
 
             klines = kline.get(self.SYMBOL,self.KLINE_INTERVAL,self.VELAS_PREVIAS)
@@ -55,7 +55,7 @@ class Bot:
 
             msg_text = self.SYMBOL+" "+self.KLINE_INTERVAL+"\n"+signal+"\n"+str(price)
             
-            emoji = '  '
+            emoji = ''
             if signal != 'NEUTRO':
                 if signal == 'COMPRA':
                     emoji = '✅'
