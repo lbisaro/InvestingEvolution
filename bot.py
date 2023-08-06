@@ -36,7 +36,7 @@ class Bot:
 
     def run(self,idbot):
 
-        mylog.info("Inicio idbot:"+str(idbot))
+        #mylog.info("Inicio idbot:"+str(idbot))
 
         query = "SELECT * "+ \
                 "FROM bot "+ \
