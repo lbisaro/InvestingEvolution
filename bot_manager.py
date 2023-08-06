@@ -1,17 +1,34 @@
+import database as db
 import bot
 
-import time
+import pandas as pd
+import numpy as np
 
-#interval: #Interval:  1m 5m 15m 30m 1h 4h 1d
 
-bot1 = bot.Bot(SYMBOL='BTCUSDT', KLINE_INTERVAL='1m',
-               VELAS_PREVIAS=50, LONG_MEDIA_VALUE=14)
-bot1.start()
+"""
 
-#bot2 = bot.Bot(SYMBOL='BNBUSDT', KLINE_INTERVAL='1m',
-#               VELAS_PREVIAS=50, LONG_MEDIA_VALUE=14)
-#bot2.start()
-#
-#bot3 = bot.Bot(SYMBOL='ETHUSDT', KLINE_INTERVAL='1m',
-#               VELAS_PREVIAS=50, LONG_MEDIA_VALUE=14)
-#bot3.start()
+Agregar filtros en el loop:
+    Ordenar por idusuario
+    Solo Bots activos
+    Actualizar las velas de los bots activos (SELECT distinct SYMBOL)
+    Conectar a Binance una unica vez por usuario
+
+"""
+
+# create sqlalchemy engine
+try:
+    query = "SELECT * FROM bot "
+    bots = pd.read_sql(sql=query, con=db.engine)
+    if bots['idbot'].count() > 0:
+        idbot = bots.iloc[0]['idbot']
+
+        
+        if np.int64(bots.iloc[0]['idestrategia']) == 1:
+            BOT = bot.Bot()
+            BOT.run(idbot)
+            del BOT
+
+except Exception as e:
+    exit(e)
+
+

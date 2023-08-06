@@ -7,6 +7,7 @@ import local__signals as signals
 from sqlalchemy import insert
 
 import pandas as pd
+import numpy as np
 from datetime import datetime, timedelta
 import telebot
 from binance.client import Client
@@ -14,7 +15,8 @@ import logging
 
 # Configura el logging
 logging.basicConfig(filename='bot.log', filemode='a',
-                    format='%(asctime)s %(name)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+                    format='%(asctime)s %(name)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S', level=logging.INFO)
+
 # logging.warning("Inicio", exc_info=False)
 
 # Conectar con Telegram
@@ -27,21 +29,48 @@ tb = telebot.TeleBot(local.LOC_TLGRM_TK)
 
 
 class Bot:
-    def __init__(self, SYMBOL, KLINE_INTERVAL, VELAS_PREVIAS, LONG_MEDIA_VALUE):
-        self.SYMBOL = SYMBOL
-        self.KLINE_INTERVAL = KLINE_INTERVAL
-        self.VELAS_PREVIAS = VELAS_PREVIAS
-        self.LONG_MEDIA_VALUE = LONG_MEDIA_VALUE
-
     SIDE_BUY = 0
     SIDE_SELL = 1
+
+    VALID_IDESTRATEGIA = 1
 
     # Conectar Binance
     client = Client(local.LOC_BNC_AK, local.LOC_BNC_SK,
                     testnet=local.LOC_BNC_TESNET)
-    # logging.warning("Inicio", exc_info=False)
+    #logging.info("Inicio", exc_info=False)
 
-    def start(self):
+    def run(self,idbot):
+
+        query = "SELECT * "+ \
+                "FROM bot "+ \
+                "LEFT JOIN intervals ON intervals.idinterval = bot.idinterval "+ \
+                "WHERE idbot = '"+str(idbot)+"'"
+        bots = pd.read_sql(sql=query, con=db.engine)
+        if bots['idbot'].count()== 1:
+            if bots.iloc[0]['idbot'] != idbot:
+                logging.error("Bot::run(idbot="+idbot+") ID invalido", exc_info=False)
+                return False
+            
+            if np.int64(bots.iloc[0]['idestrategia']) != self.VALID_IDESTRATEGIA:
+                logging.error("Bot::run(idbot="+str(idbot)+") idestrategia erronea", exc_info=False)
+                return False
+            
+            self.SYMBOL = bots.iloc[0]['base_asset']+bots.iloc[0]['quote_asset']
+            self.KLINE_INTERVAL = bots.iloc[0]['binance_interval']
+            self.QUOTE_QTY = bots.iloc[0]['quote_qty']
+
+            prms = (bots.iloc[0]['prm_values']).split(',')
+            self.LONG_MEDIA_VALUE = int(prms[0])
+            self.VELAS_PREVIAS = int(prms[1])
+            self.QUOTE_TO_BUY = self.QUOTE_QTY * ( float(prms[2]) / 100 )
+            self.idbot = idbot
+                    
+        else:
+            logging.error('Bot::Init - No fue posible iniciar el bot ID: '+str(idbot), exc_info=False)
+            return False
+
+        if self.idbot == 0:
+            logging.error('Bot::start - Bot ID invalido ', exc_info=False)
 
         # logging.warning("Start", exc_info=False)
         if kline.update(self.SYMBOL):
@@ -63,8 +92,6 @@ class Bot:
             asset_balance = round(float(self.client.get_asset_balance(asset=base_asset)['free']), symbol_info['qty_dec_qty'])
             print('asset_balance',base_asset,asset_balance)
 
-
-
             #query = "SELECT * FROM bot_order WHERE idbot = 1 AND completed = 0"
             #open_orders = pd.read_sql(sql=query, con=db.engine)
             #comprado_qty = 0
@@ -83,8 +110,7 @@ class Bot:
         
             if asset_balance == 0 and signal == 'COMPRA':
 
-                quote_to_buy = 100
-                origQty = round(quote_to_buy/price,symbol_info['qty_dec_qty'])
+                origQty = round(self.QUOTE_TO_BUY/price,symbol_info['qty_dec_qty'])
                 new_order['side'] = self.SIDE_BUY
                 new_order['origQty'] = origQty
                 new_order['orderId'] = ''
@@ -129,9 +155,6 @@ class Bot:
                 new_order['origQty'] = round(float(order['executedQty']),symbol_info['qty_dec_qty'])
                 new_order['completed'] = 1
                 
-                new_order.to_sql('bot_order', con=db.engine, index=False,
-                        if_exists='append')
-                
                 new_order.to_sql('bot_order', con=db.engine, index=False,if_exists='append')
                 emoji = '🔻'
                 msg_text = self.SYMBOL+" "+self.KLINE_INTERVAL + " VENTA "+emoji+" "+str(price)+" Exc.Price "+str(executedPrice)
@@ -155,4 +178,4 @@ class Bot:
             """
 
         else:
-            exit('ERROR - No fue posible actualizar las velas')
+            logging.error('Bot::start - No fue posible actualizar las velas', exc_info=False)

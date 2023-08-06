@@ -85,7 +85,6 @@ def get(symbol,interval,limit):
         from_datetime = (datetime.utcnow() - delta_time - timedelta(hours = 3) ).strftime('%Y-%m-%d')+'00:00'
     
     
-    print('from_datetime',from_datetime)
     if not interval_str:
         exit('ERROR - kline.py :: get - Se debe especificar un interval valido ['+interval+']')
         
