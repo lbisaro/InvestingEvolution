@@ -56,9 +56,6 @@ class Bot:
 
             price = round(avg_price, symbol_info['qty_dec_price'])
 
-
-
-
             base_asset = symbol_info['baseAsset']
             quote_asset = symbol_info['quoteAsset']
             quote_balance = round(float(self.client.get_asset_balance(asset=quote_asset)['free']), 2)
@@ -66,7 +63,8 @@ class Bot:
             asset_balance = round(float(self.client.get_asset_balance(asset=base_asset)['free']), symbol_info['qty_dec_qty'])
             print('asset_balance',base_asset,asset_balance)
 
-            
+
+
             #query = "SELECT * FROM bot_order WHERE idbot = 1 AND completed = 0"
             #open_orders = pd.read_sql(sql=query, con=db.engine)
             #comprado_qty = 0
@@ -100,23 +98,19 @@ class Bot:
                                 quantity= origQty
                                 )
                 new_order['orderId'] = order['orderId']
-                new_order['price'] = round(float(order['cummulativeQuoteQty'])/float(order['executedQty']),symbol_info['qty_dec_price'])
-                new_order['qty'] = round(order['executedQty'],symbol_info['qty_dec_qty'])
-                if order['status'] == 'FILLED':
-                    new_order['completed'] = 1
-                
-                new_order.to_sql('bot_order', con=db.engine, index=False,
-                        if_exists='append')
+                executedPrice = round(float(order['cummulativeQuoteQty'])/float(order['executedQty']),symbol_info['qty_dec_price'])
+                new_order['price'] = executedPrice
+                new_order['origQty'] = round(float(order['executedQty']),symbol_info['qty_dec_qty'])
+                new_order['completed'] = 1
                 
                 new_order.to_sql('bot_order', con=db.engine, index=False,if_exists='append')
                 emoji = '✅'
-                msg_text = 'Test '+self.SYMBOL+" "+self.KLINE_INTERVAL + " COMPRA "+emoji+" Actual Price "+str(price)+" Excecuted Price "+new_order['price']
+                msg_text = self.SYMBOL+" "+self.KLINE_INTERVAL + " COMPRA "+emoji+" "+str(price)+" Exc.Price "+str(executedPrice)
                 tb.send_message(chatid, msg_text)
-                
-                print('compra',new_order)
+                print(msg_text)
             
             elif asset_balance > 0 and signal == 'VENTA':
-                origQty = round((asset_balance*0.1),symbol_info['qty_dec_qty'])
+                origQty = round((asset_balance),symbol_info['qty_dec_qty'])
                 new_order['side'] = self.SIDE_SELL
                 new_order['origQty'] = origQty
                 new_order['orderId'] = ''
@@ -125,24 +119,25 @@ class Bot:
                 print('vender',new_order)
                 order = self.client.create_order(
                                 symbol=self.SYMBOL,
-                                side=self.client.SIDE_BUY,
+                                side=self.client.SIDE_SELL,
                                 type='MARKET',
                                 quantity= origQty
                                 )
                 new_order['orderId'] = order['orderId']
-                new_order['price'] = round(float(order['cummulativeQuoteQty'])/float(order['executedQty']),symbol_info['qty_dec_price'])
-                new_order['qty'] = round(order['executedQty'],symbol_info['qty_dec_qty'])
-                if order['status'] == 'FILLED':
-                    new_order['completed'] = 1
+                executedPrice = round(float(order['cummulativeQuoteQty'])/float(order['executedQty']),symbol_info['qty_dec_price'])
+                new_order['price'] = executedPrice
+                new_order['origQty'] = round(float(order['executedQty']),symbol_info['qty_dec_qty'])
+                new_order['completed'] = 1
                 
                 new_order.to_sql('bot_order', con=db.engine, index=False,
                         if_exists='append')
                 
                 new_order.to_sql('bot_order', con=db.engine, index=False,if_exists='append')
                 emoji = '🔻'
-                msg_text = 'Test '+self.SYMBOL+" "+self.KLINE_INTERVAL + " VENTA "+emoji+" Actual Price "+str(price)+" Excecuted Price "+new_order['price']
+                msg_text = self.SYMBOL+" "+self.KLINE_INTERVAL + " VENTA "+emoji+" "+str(price)+" Exc.Price "+str(executedPrice)
                 tb.send_message(chatid, msg_text)
-                print('venta',new_order)
+                print(msg_text)
+
 
 
             """
