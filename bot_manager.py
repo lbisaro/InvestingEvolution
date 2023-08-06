@@ -20,13 +20,13 @@ try:
     query = "SELECT * FROM bot "
     bots = pd.read_sql(sql=query, con=db.engine)
     if bots['idbot'].count() > 0:
-        idbot = bots.iloc[0]['idbot']
-
-        
-        if np.int64(bots.iloc[0]['idestrategia']) == 1:
-            BOT = bot.Bot()
-            BOT.run(idbot)
-            del BOT
+        for i in bots.index:
+            idbot = bots.loc[i]['idbot']
+            print('idbot:',idbot)
+            if np.int64(bots.loc[i]['idestrategia']) == 1:
+                BOT = bot.Bot()
+                BOT.run(idbot)
+                del BOT
 
 except Exception as e:
     mylog.criticalError(f'bot_manager.py - {e}')
