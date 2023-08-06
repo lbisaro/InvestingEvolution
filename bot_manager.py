@@ -1,5 +1,6 @@
 import database as db
 import bot
+import my_logging as mylog
 
 import pandas as pd
 import numpy as np
@@ -15,7 +16,6 @@ Agregar filtros en el loop:
 
 """
 
-# create sqlalchemy engine
 try:
     query = "SELECT * FROM bot "
     bots = pd.read_sql(sql=query, con=db.engine)
@@ -29,6 +29,7 @@ try:
             del BOT
 
 except Exception as e:
-    exit(e)
+    mylog.criticalError(f'bot_manager.py - {e}')
+    
 
 

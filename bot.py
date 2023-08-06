@@ -11,13 +11,8 @@ import numpy as np
 from datetime import datetime, timedelta
 import telebot
 from binance.client import Client
-import logging
+import my_logging as mylog
 
-# Configura el logging
-logging.basicConfig(filename='bot.log', filemode='a',
-                    format='%(asctime)s %(name)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S', level=logging.INFO)
-
-# logging.warning("Inicio", exc_info=False)
 
 # Conectar con Telegram
 chatid = local.LOC_TLGRM_CHATID
@@ -37,9 +32,11 @@ class Bot:
     # Conectar Binance
     client = Client(local.LOC_BNC_AK, local.LOC_BNC_SK,
                     testnet=local.LOC_BNC_TESNET)
-    #logging.info("Inicio", exc_info=False)
+    
 
     def run(self,idbot):
+
+        mylog.info("Inicio idbot:"+str(idbot))
 
         query = "SELECT * "+ \
                 "FROM bot "+ \
@@ -48,11 +45,11 @@ class Bot:
         bots = pd.read_sql(sql=query, con=db.engine)
         if bots['idbot'].count()== 1:
             if bots.iloc[0]['idbot'] != idbot:
-                logging.error("Bot::run(idbot="+idbot+") ID invalido", exc_info=False)
+                mylog.error("Bot::run(idbot="+idbot+") ID invalido")
                 return False
             
             if np.int64(bots.iloc[0]['idestrategia']) != self.VALID_IDESTRATEGIA:
-                logging.error("Bot::run(idbot="+str(idbot)+") idestrategia erronea", exc_info=False)
+                mylog.error("Bot::run(idbot="+str(idbot)+") idestrategia erronea")
                 return False
             
             self.SYMBOL = bots.iloc[0]['base_asset']+bots.iloc[0]['quote_asset']
@@ -66,13 +63,13 @@ class Bot:
             self.idbot = idbot
                     
         else:
-            logging.error('Bot::Init - No fue posible iniciar el bot ID: '+str(idbot), exc_info=False)
+            mylog.error('Bot::Init - No fue posible iniciar el bot ID: '+str(idbot))
             return False
 
         if self.idbot == 0:
-            logging.error('Bot::start - Bot ID invalido ', exc_info=False)
+            mylog.error('Bot::start - Bot ID invalido ')
 
-        # logging.warning("Start", exc_info=False)
+        # mylog.warning("Start")
         if kline.update(self.SYMBOL):
 
             klines = kline.get(self.SYMBOL, self.KLINE_INTERVAL, self.VELAS_PREVIAS)
@@ -178,4 +175,4 @@ class Bot:
             """
 
         else:
-            logging.error('Bot::start - No fue posible actualizar las velas', exc_info=False)
+            mylog.error('Bot::start - No fue posible actualizar las velas')

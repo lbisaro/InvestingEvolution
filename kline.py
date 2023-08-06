@@ -1,5 +1,6 @@
 import local__config as local
 import database as db
+import my_logging as mylog
 
 from datetime import datetime, timedelta
 import pandas as pd
@@ -22,9 +23,13 @@ def update(symbol):
         #Conectando a Binance sin API-KEY 
         client = Client()
 
-        klines = client.get_historical_klines(
-            #se buscan velas hasta un minuto antes del minuto actual para que se registre la vela cerrada en la base de datos
-            symbol=symbol, interval='1m', start_str=start_str,end_str='1 minute ago')
+        try:
+            klines = client.get_historical_klines(
+                #se buscan velas hasta un minuto antes del minuto actual para que se registre la vela cerrada en la base de datos
+                symbol=symbol, interval='1m', start_str=start_str,end_str='1 minute ago')
+        except Exception as e:
+            mylog.criticalError(f'kline.py - update {e}')
+
         if klines:
             df = pd.DataFrame(klines)
             df = df.iloc[:, :6]
@@ -43,7 +48,8 @@ def update(symbol):
         return True
         
     except Exception as e:
-        exit(f"ERROR - kline.py :: update - No fue posible actualizar velas: {e}")
+        msg = f'kline.py :: update - No fue posible actualizar velas para {+symbol} {e}'
+        mylog.error(msg)
         
 
 # interval: 1m 5m 15m 30m 1h 4h 1d 
@@ -86,7 +92,9 @@ def get(symbol,interval,limit):
     
     
     if not interval_str:
-        exit('ERROR - kline.py :: get - Se debe especificar un interval valido ['+interval+']')
+        msg = 'ERROR - kline.py :: get - Se debe especificar un interval valido ['+interval+']'
+        mylog.error(msg)
+       
         
     query = None
     query = "SELECT * FROM klines_1m WHERE symbol = '" +symbol+"' AND datetime >= '"+from_datetime+"' ORDER BY datetime DESC"
