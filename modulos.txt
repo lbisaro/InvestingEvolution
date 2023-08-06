@@ -4,3 +4,4 @@ pip install python-binance
 pip install ta
 pip install telebot
 pip install requests
+pip install -U urllib3 requests
