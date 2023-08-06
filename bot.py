@@ -120,7 +120,7 @@ class Bot:
             new_order = pd.DataFrame([[1,base_asset,quote_asset]],columns=['idbot','base_asset','quote_asset'])
         
             #Si no esta comprado y hay señal de compra 
-            if asset_balance == 0: #and signal == 'COMPRA':
+            if asset_balance == 0 and signal == 'COMPRA':
                 
                 #Calcula el precio promedio - Ver en la funcion functions.py:precioActual que hay varias formas
                 avg_price = fn.precioActual(self.client, self.SYMBOL)
@@ -155,7 +155,7 @@ class Bot:
                 tb.send_message(chatid, msg_text)
             
             #Si esta comprado y hay señal de venta
-            elif asset_balance > 0: # and signal == 'VENTA':
+            elif asset_balance > 0 and signal == 'VENTA':
 
                 #Calcula el precio promedio - Ver en la funcion functions.py:precioActual que hay varias formas
                 avg_price = fn.precioActual(self.client, self.SYMBOL)
