@@ -6,23 +6,25 @@ import pandas as pd
 import numpy as np
 
 
-"""
-
+"""TODO
+Actualizar las velas de los bots activos (SELECT distinct SYMBOL)
+    
 Agregar filtros en el loop:
     Ordenar por idusuario
-    Solo Bots activos
-    Actualizar las velas de los bots activos (SELECT distinct SYMBOL)
+    Solo Bots y Usuarios activos
     Conectar a Binance una unica vez por usuario
 
 """
 
 try:
+    #Busca los Bots registrados en la DB
     query = "SELECT * FROM bot "
     bots = pd.read_sql(sql=query, con=db.engine)
     if bots['idbot'].count() > 0:
         for i in bots.index:
             idbot = bots.loc[i]['idbot']
-            print('idbot:',idbot)
+
+            #Si el bot listado coincide con la estrategia, lo ejecuta
             if np.int64(bots.loc[i]['idestrategia']) == 1:
                 BOT = bot.Bot()
                 BOT.run(idbot)
