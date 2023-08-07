@@ -82,7 +82,7 @@ class Bot:
             """TODO Este metodo se va a reemplazar por una consulta guardada en la cache
                     para no generar consultas excesivas a Binance, sobre datos que pueden cambiar eventualmente
             """
-            symbol_info = fn.getSymbolInfo(self.client, self.SYMBOL)
+            symbol_info = fn.get_symbol_info(self.client, self.SYMBOL)
 
             """Obtiene el balance que existe para cada asset
                Esto se utiliza actualmente cuando aparece una señal de venta
@@ -121,8 +121,8 @@ class Bot:
             #Si no esta comprado y hay señal de compra 
             if asset_balance == 0 and signal == 'COMPRA':
                 
-                #Calcula el precio promedio - Ver en la funcion functions.py:precioActual que hay varias formas
-                avg_price = fn.precioActual(self.client, self.SYMBOL)
+                #Calcula el precio promedio - Ver en la funcion functions.py:precio_actual que hay varias formas
+                avg_price = fn.precio_actual(self.client, self.SYMBOL)
                 price = round(avg_price, symbol_info['qty_dec_price'])
 
                 #Calcula los parametros de la orden
@@ -157,8 +157,8 @@ class Bot:
             #Si esta comprado y hay señal de venta
             elif asset_balance > 0 and signal == 'VENTA':
 
-                #Calcula el precio promedio - Ver en la funcion functions.py:precioActual que hay varias formas
-                avg_price = fn.precioActual(self.client, self.SYMBOL)
+                #Calcula el precio promedio - Ver en la funcion functions.py:precio_actual que hay varias formas
+                avg_price = fn.precio_actual(self.client, self.SYMBOL)
                 price = round(avg_price, symbol_info['qty_dec_price'])
 
                 #Calcula los parametros de la orden

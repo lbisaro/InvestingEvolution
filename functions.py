@@ -5,12 +5,12 @@ import pandas as pd
 
 
 #step_size debe ser un numero decimal expresado en potencia de 10, como por ejemplo: 0.0001, 0.01, 10.0, 1000.0
-def calcularDecimales(step_size):
+def calcular_decimales(step_size):
     potencia = int(math.log10(step_size))
     decimales = ( 0 if potencia>0 else -potencia )
     return decimales
 
-def precioActual(client,symbol):
+def precio_actual(client,symbol):
     #Diferentes formas de obener el precio de un SIMBOLO
 
     # - Esta es la forma propuesta tomando el precio promedio ofrecido por binance
@@ -41,10 +41,10 @@ def precioActual(client,symbol):
 
     return avg_price
 
-def getSymbolInfo(client,symbol):
+def get_symbol_info(client,symbol):
     symbol_info = client.get_symbol_info(symbol)
-    qty_dec_qty   = calcularDecimales(float(symbol_info['filters'][1]['minQty']))
-    qty_dec_price = calcularDecimales(float(symbol_info['filters'][0]['minPrice']))
+    qty_dec_qty   = calcular_decimales(float(symbol_info['filters'][1]['minQty']))
+    qty_dec_price = calcular_decimales(float(symbol_info['filters'][0]['minPrice']))
     symbol_info['qty_dec_price'] = qty_dec_price
     symbol_info['qty_dec_qty'] = qty_dec_qty
     return symbol_info
