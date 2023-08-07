@@ -144,13 +144,14 @@ class Bot:
                 new_order['price'] = executedPrice
                 new_order['origQty'] = round(float(order['executedQty']),symbol_info['qty_dec_qty'])
                 new_order['completed'] = 1
+                quote_buyed = round(executedPrice*float(order['executedQty']),2)
                 
                 #Guarda al orden en la DB
                 new_order.to_sql('bot_order', con=db.engine, index=False,if_exists='append')
 
                 #Envia mensaje a Telegram
                 emoji = '✅'
-                msg_text = local.SERVER_IDENTIFIER+"\n"+self.SYMBOL+" "+binance_interval + " COMPRA "+emoji+" "+str(price)+" Exc.Price "+str(executedPrice)
+                msg_text = local.SERVER_IDENTIFIER+"\n"+self.SYMBOL+" "+binance_interval + " COMPRA "+emoji+" "+str(price)+" Exc.Price "+str(executedPrice)+" "+quote_asset+" "+str(quote_buyed)
                 tb.send_message(chatid, msg_text)
             
             #Si esta comprado y hay señal de venta
@@ -166,7 +167,7 @@ class Bot:
                 new_order['origQty'] = origQty
                 new_order['orderId'] = ''
                 new_order['completed'] = 0
-                
+                                
                 order = self.client.create_order(
                                 symbol=self.SYMBOL,
                                 side=self.client.SIDE_SELL,
@@ -179,13 +180,14 @@ class Bot:
                 new_order['price'] = executedPrice
                 new_order['origQty'] = round(float(order['executedQty']),symbol_info['qty_dec_qty'])
                 new_order['completed'] = 1
+                quote_selled = round(executedPrice*float(order['executedQty']),2)
                 
                 #Guarda al orden en la DB
                 new_order.to_sql('bot_order', con=db.engine, index=False,if_exists='append')
                 
                 #Envia mensaje a Telegram
                 emoji = '🔻'
-                msg_text = local.SERVER_IDENTIFIER+"\n"+self.SYMBOL+" "+binance_interval + " VENTA "+emoji+" "+str(price)+" Exc.Price "+str(executedPrice)
+                msg_text = local.SERVER_IDENTIFIER+"\n"+self.SYMBOL+" "+binance_interval + " VENTA "+emoji+" "+str(price)+" Exc.Price "+str(executedPrice)+" "+quote_asset+" "+str(quote_selled)
                 tb.send_message(chatid, msg_text)
 
 
