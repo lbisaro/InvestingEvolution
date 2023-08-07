@@ -99,6 +99,4 @@ def get_interval_actual():
     if mn=='00' and (hr=='21'):
         whereIn = whereIn + ",'2d01'"
 
-    mylog.info("whereIn:"+whereIn)
-
     return whereIn
