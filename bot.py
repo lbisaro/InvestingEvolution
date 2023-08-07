@@ -1,7 +1,6 @@
 import local__config as local
 import functions as fn
 import database as db
-import time
 import kline
 import local__signals as signals
 from sqlalchemy import insert
@@ -39,10 +38,7 @@ class Bot:
         #mylog.info("Inicio idbot:"+str(idbot))
 
         """Configura el bot en funcion del parametro idbot recibido"""
-        query = "SELECT * "+ \
-                "FROM bot "+ \
-                "LEFT JOIN intervals ON intervals.idinterval = bot.idinterval "+ \
-                "WHERE idbot = '"+str(idbot)+"'"
+        query = "SELECT * FROM bot WHERE idbot = '"+str(idbot)+"' "
         bots = pd.read_sql(sql=query, con=db.engine)
         if bots['idbot'].count()== 1:
             if bots.iloc[0]['idbot'] != idbot:
@@ -53,15 +49,18 @@ class Bot:
                 mylog.error("Bot::run(idbot="+str(idbot)+") idestrategia erronea")
                 return False
             
+            self.idbot = idbot            
             self.SYMBOL = bots.iloc[0]['base_asset']+bots.iloc[0]['quote_asset']
-            self.KLINE_INTERVAL = bots.iloc[0]['binance_interval']
+            self.KLINE_INTERVAL = bots.iloc[0]['idinterval']
+            binance_interval = fn.get_intervals(self.KLINE_INTERVAL,'binance')
             self.QUOTE_QTY = bots.iloc[0]['quote_qty']
-
+            
             prms = (bots.iloc[0]['prm_values']).split(',')
             self.LONG_MEDIA_VALUE = int(prms[0])
             self.VELAS_PREVIAS = int(prms[1])
             self.QUOTE_TO_BUY = self.QUOTE_QTY * ( float(prms[2]) / 100 )
-            self.idbot = idbot
+ 
+
                     
         else:
             mylog.error('Bot::Init - No fue posible iniciar el bot ID: '+str(idbot))
@@ -151,7 +150,7 @@ class Bot:
 
                 #Envia mensaje a Telegram
                 emoji = '✅'
-                msg_text = local.SERVER_IDENTIFIER+"\n"+self.SYMBOL+" "+self.KLINE_INTERVAL + " COMPRA "+emoji+" "+str(price)+" Exc.Price "+str(executedPrice)
+                msg_text = local.SERVER_IDENTIFIER+"\n"+self.SYMBOL+" "+binance_interval + " COMPRA "+emoji+" "+str(price)+" Exc.Price "+str(executedPrice)
                 tb.send_message(chatid, msg_text)
             
             #Si esta comprado y hay señal de venta
@@ -186,7 +185,7 @@ class Bot:
                 
                 #Envia mensaje a Telegram
                 emoji = '🔻'
-                msg_text = local.SERVER_IDENTIFIER+"\n"+self.SYMBOL+" "+self.KLINE_INTERVAL + " VENTA "+emoji+" "+str(price)+" Exc.Price "+str(executedPrice)
+                msg_text = local.SERVER_IDENTIFIER+"\n"+self.SYMBOL+" "+binance_interval + " VENTA "+emoji+" "+str(price)+" Exc.Price "+str(executedPrice)
                 tb.send_message(chatid, msg_text)
 
 

@@ -1,4 +1,8 @@
 import math
+from datetime import datetime
+import my_logging as mylog
+import pandas as pd
+
 
 #step_size debe ser un numero decimal expresado en potencia de 10, como por ejemplo: 0.0001, 0.01, 10.0, 1000.0
 def calcularDecimales(step_size):
@@ -44,3 +48,57 @@ def getSymbolInfo(client,symbol):
     symbol_info['qty_dec_price'] = qty_dec_price
     symbol_info['qty_dec_qty'] = qty_dec_qty
     return symbol_info
+
+def get_intervals(i='ALL',c='ALL'):
+    columns=['id','name','binance','pandas_resample','minutes']
+    intervals = pd.DataFrame([['0m01','1 minuto','1m','1T',1],
+                             ['0m05','5 minutos','5m','5T',5],
+                             ['0m15','15 minutos','15m','15T',15],
+                             ['0m30','30 minutos','30m','30T',30],
+                             ['1h01','1 hora','1h','1H',60],
+                             ['1h04','4 horas','4h','4H',(60*4)],
+                             ['2d01','1 dia','1d','1D',(60*4*24)],
+                             ],columns=columns)
+    intervals.set_index('id',inplace=True)
+
+    if i=='ALL' and c=='ALL':
+        return intervals
+    else:
+        if i!='ALL' and c=='ALL':
+            if i in intervals.index:
+                return intervals.loc[i]
+            else:
+                mylog.criticalError('functions.py.get_intervals - El idinterval especificado es invalido')
+        elif i!='ALL' and c!='ALL':
+            if i in intervals.index:
+                if c in intervals.loc[i]:
+                    return intervals.loc[i][c]
+                else:
+                    mylog.criticalError('functions.py.get_intervals - El dato especificado es invalido')
+            else:
+                mylog.criticalError('functions.py.get_intervals - El idinterval especificado es invalido')
+    
+    
+
+def get_interval_actual():
+    
+    hr = datetime.now().strftime('%H')
+    mn = datetime.now().strftime('%M')
+
+    whereIn = "'0m01'"
+    if mn[1]=='0' or mn[1]=='4':
+        whereIn = whereIn + ",'0m05'"
+    if mn=='00' or mn=='15' or mn=='30' or mn=='45':
+        whereIn = whereIn + ",'0m15'"
+    if mn=='00' or mn=='30':
+        whereIn = whereIn + ",'0m30'"
+    if mn=='00' :
+        whereIn = whereIn + ",'1h01'"
+    if mn=='00' and (hr=='00' or hr=='04' or hr=='08' or hr=='12' or hr=='16' or hr=='20'):
+        whereIn = whereIn + ",'1h04'"
+    if mn=='00' and (hr=='21'):
+        whereIn = whereIn + ",'2d01'"
+
+    mylog.info("whereIn:"+whereIn)
+
+    return whereIn

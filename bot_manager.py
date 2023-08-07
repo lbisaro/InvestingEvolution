@@ -5,6 +5,11 @@ import my_logging as mylog
 import pandas as pd
 import numpy as np
 
+import functions as fn
+
+
+
+
 
 """TODO
 Actualizar las velas de los bots activos (SELECT distinct SYMBOL)
@@ -16,9 +21,11 @@ Agregar filtros en el loop:
 
 """
 
+whereIn = fn.get_interval_actual()
+
 try:
     #Busca los Bots registrados en la DB
-    query = "SELECT * FROM bot "
+    query = "SELECT * FROM bot WHERE idinterval in ("+whereIn+")"
     bots = pd.read_sql(sql=query, con=db.engine)
     if bots['idbot'].count() > 0:
         for i in bots.index:
@@ -31,7 +38,7 @@ try:
                 del BOT
 
 except Exception as e:
-    mylog.criticalError(f'bot_manager.py - {e}')
+    mylog.criticalError(f'bot_manager.py - No fue posible acceder a la lista de bots {e}')
     
 
 

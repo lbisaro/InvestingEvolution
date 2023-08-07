@@ -1,6 +1,7 @@
 import local__config as local
 import database as db
 import my_logging as mylog
+import functions as fn
 
 from datetime import datetime, timedelta
 import pandas as pd
@@ -52,68 +53,34 @@ def update(symbol):
         mylog.error(msg)
         
 
-# interval: 1m 5m 15m 30m 1h 4h 1d 
-def get(symbol,interval,limit):
-    interval_str = None
-    if interval == '1m':
-        interval_str = '1T'    
-        delta_time = timedelta(minutes = (limit)+1) 
-        from_datetime = (datetime.utcnow() - delta_time - timedelta(hours = 3) ).strftime('%Y-%m-%d %H:%M')
-    
-    elif interval == '5m':
-        interval_str = '5T'  
-        delta_time = timedelta(minutes = (limit*5))
-        from_datetime = (datetime.utcnow() - delta_time - timedelta(hours = 3) ).strftime('%Y-%m-%d %H:%M')
-      
-    elif interval == '15m':
-        interval_str = '15T'    
-        delta_time = timedelta(minutes = (limit*15))
-        from_datetime = (datetime.utcnow() - delta_time - timedelta(hours = 3) ).strftime('%Y-%m-%d %H:%M')
-
-    elif interval == '30m':
-        interval_str = '30T'    
-        delta_time = timedelta(minutes = (limit*30))
-        from_datetime = (datetime.utcnow() - delta_time - timedelta(hours = 3) ).strftime('%Y-%m-%d %H:%M')
-
-    elif interval == '1h':
-        interval_str = '1H'    
-        delta_time = timedelta(hours = (limit))
-        from_datetime = (datetime.utcnow() - delta_time - timedelta(hours = 3) ).strftime('%Y-%m-%d %H')+':00'
-
-    elif interval == '4h':
-        interval_str = '4H'    
-        delta_time = timedelta(hours = (limit*4))
-        from_datetime = (datetime.utcnow() - delta_time - timedelta(hours = 3) ).strftime('%Y-%m-%d %H')+':00'
-
-    elif interval == '1d':
-        interval_str = 'D'    
-        delta_time = timedelta(days = (limit))    
-        from_datetime = (datetime.utcnow() - delta_time - timedelta(hours = 3) ).strftime('%Y-%m-%d')+'00:00'
-    
-    
-    if not interval_str:
-        msg = 'ERROR - kline.py :: get - Se debe especificar un interval valido ['+interval+']'
-        mylog.error(msg)
-       
+# idinterval: Definido en functions.py.get_intervals()
+def get(symbol,idinterval,limit):
+    interval_str = fn.get_intervals(idinterval,'pandas_resample')
+    i_unit = idinterval[0:2]
+    i_qty = int(idinterval[2:])
+    if i_unit == '0m': #Minutos
+        delta_time = timedelta(minutes = i_qty*limit)
+    elif i_unit == '1h': #Horas
+        delta_time = timedelta(hours = i_qty*limit)
+    elif i_unit == '2d': #Dias
+        delta_time = timedelta(days = i_qty*limit)
+    from_datetime = (datetime.utcnow() - delta_time - timedelta(hours = 3) ).strftime('%Y-%m-%d %H:%M')
         
     query = None
     query = "SELECT * FROM klines_1m WHERE symbol = '" +symbol+"' AND datetime >= '"+from_datetime+"' ORDER BY datetime DESC"
     klines = pd.read_sql(sql=query,con=db.engine)
     klines.sort_values(by="datetime",inplace=True)
 
-    if interval == '1m':
-        return klines
-    else:
-        agg_funcs = {
-            "open": "first",
-            "high": "max",
-            "low": "min",
-            "close": "last",
-            "volume": "sum",
-        }   
-        
-        if interval_str:
-            return klines.resample(interval_str, on="datetime").agg(agg_funcs)
+    agg_funcs = {
+        "open": "first",
+        "high": "max",
+        "low": "min",
+        "close": "last",
+        "volume": "sum",
+    }   
+    
+    if interval_str:
+        return klines.resample(interval_str, on="datetime").agg(agg_funcs)
 
    
     
