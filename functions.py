@@ -86,7 +86,7 @@ def get_interval_actual():
     mn = datetime.now().strftime('%M')
 
     whereIn = "'0m01'"
-    if mn[1]=='0' or mn[1]=='4':
+    if mn[1]=='0' or mn[1]=='5':
         whereIn = whereIn + ",'0m05'"
     if mn=='00' or mn=='15' or mn=='30' or mn=='45':
         whereIn = whereIn + ",'0m15'"

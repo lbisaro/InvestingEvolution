@@ -122,7 +122,7 @@ class Bot:
             if asset_balance == 0 and signal == 'COMPRA':
                 
                 #Calcula el precio promedio - Ver en la funcion functions.py:precio_actual que hay varias formas
-                avg_price = fn.precio_actual(self.client, self.SYMBOL)
+                avg_price = fn.precioActual(self.client, self.SYMBOL)
                 price = round(avg_price, symbol_info['qty_dec_price'])
 
                 #Calcula los parametros de la orden
