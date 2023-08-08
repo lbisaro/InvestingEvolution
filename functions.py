@@ -104,13 +104,13 @@ def get_interval_actual():
 def create_order(client,symbol,side,type,quantity):
     try:
         order = client.create_order(
-                    symbol='BTCUSDT',
-                    side=client.SIDE_BUY,
-                    type='MARKET',
+                    symbol=symbol,
+                    side=side,
+                    type=type,
                     quantity= quantity
                     )
         return order
     except Exception as e:
-        msg_text = f'{e} '+ symbol+" "+client.SIDE_BUY+" "+quantity
+        msg_text = f'{e} '+ symbol+" "+side+" "+quantity
         mylog.error(msg_text)
         return False

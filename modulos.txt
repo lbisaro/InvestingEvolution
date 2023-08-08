@@ -12,4 +12,12 @@ pip install requests
 pip install -U urllib3 requests
 
 #Ajustar timezone
-sudo timedatectl set-timezone America/Argentina/Buenos_Aires
+linux ->
+    sudo timedatectl set-timezone America/Argentina/Buenos_Aires
+mysql -> 
+    sudo nano /etc/my.cnf
+    add 
+        [mysqld]
+        default-time-zone = '-03:00'
+
+
