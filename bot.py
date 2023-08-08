@@ -78,10 +78,6 @@ class Bot:
             """Define la señal de Compra/Venta/Neutro"""
             signal = signals.adx_alternancia(klines, self.LONG_MEDIA_VALUE)
 
-            if signal != 'NEUTRO':
-                msg_text = local.SERVER_IDENTIFIER+"\n"+self.SYMBOL+" "+binance_interval + signal
-                tb.send_message(chatid, msg_text)
-
             """Obtiene info del SYMBOL"""
             """TODO Este metodo se va a reemplazar por una consulta guardada en la cache
                     para no generar consultas excesivas a Binance, sobre datos que pueden cambiar eventualmente
@@ -98,8 +94,8 @@ class Bot:
             quote_asset = symbol_info['quoteAsset']
             quote_balance = round(float(self.client.get_asset_balance(asset=quote_asset)['free']), 2)
             print('quote_balance',quote_asset,quote_balance)
-            asset_balance = round(float(self.client.get_asset_balance(asset=base_asset)['free']), symbol_info['qty_dec_qty'])
-            print('asset_balance',base_asset,asset_balance)
+            base_balance = round(float(self.client.get_asset_balance(asset=base_asset)['free']), symbol_info['qty_dec_qty'])
+            print('base_balance',base_asset,base_balance)
 
             """ TODO Esto queda pendiente para calcular lo que hay comprado desde la DB
                 En la testnet se recalcula el balance cada tanto y ppuede no coincidir con 
@@ -121,9 +117,20 @@ class Bot:
 
             #Crea un dataframe con una orden de compra/venta con valores por default
             new_order = pd.DataFrame([[1,base_asset,quote_asset]],columns=['idbot','base_asset','quote_asset'])
-        
+
+
+
+
+            if signal != 'NEUTRO':
+                msg_text = local.SERVER_IDENTIFIER+"\n"+self.SYMBOL+" "+binance_interval+" " + signal+\
+                            ' Balance: '+quote_asset+' '+str(quote_balance)+' - '+\
+                                         base_asset+' '+str(base_balance)
+                tb.send_message(chatid, msg_text)
+
+
+
             #Si no esta comprado y hay señal de compra 
-            if asset_balance == 0 and signal == 'COMPRA':
+            if base_balance == 0 and signal == 'COMPRA':
                 
                 #Calcula el precio promedio - Ver en la funcion functions.py:precio_actual que hay varias formas
                 avg_price = fn.precioActual(self.client, self.SYMBOL)
@@ -159,14 +166,14 @@ class Bot:
                 tb.send_message(chatid, msg_text)
             
             #Si esta comprado y hay señal de venta
-            elif asset_balance > 0 and signal == 'VENTA':
+            elif base_balance > 0 and signal == 'VENTA':
 
                 #Calcula el precio promedio - Ver en la funcion functions.py:precio_actual que hay varias formas
                 avg_price = fn.precio_actual(self.client, self.SYMBOL)
                 price = round(avg_price, symbol_info['qty_dec_price'])
 
                 #Calcula los parametros de la orden
-                origQty = round((asset_balance),symbol_info['qty_dec_qty'])
+                origQty = round((base_balance),symbol_info['qty_dec_qty'])
                 new_order['side'] = self.SIDE_SELL
                 new_order['origQty'] = origQty
                 new_order['orderId'] = ''
