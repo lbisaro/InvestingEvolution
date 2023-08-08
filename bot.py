@@ -116,7 +116,7 @@ class Bot:
             #print('comprado: ',base_asset, comprado_qty, quote_asset,comprado_quote)
 
             #Crea un dataframe con una orden de compra/venta con valores por default
-            new_order = pd.DataFrame([[1,base_asset,quote_asset]],columns=['idbot','base_asset','quote_asset'])
+            new_order = pd.DataFrame([[self.idbot,base_asset,quote_asset]],columns=['idbot','base_asset','quote_asset'])
 
 
 
