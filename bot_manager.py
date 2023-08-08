@@ -30,7 +30,7 @@ try:
     if bots['idbot'].count() > 0:
         for i in bots.index:
             idbot = bots.loc[i]['idbot']
-            mylog.info("Inicia idbot: "+str(idbot))
+            
             #Si el bot listado coincide con la estrategia, lo ejecuta
             if np.int64(bots.loc[i]['idestrategia']) == 1:
                 BOT = bot.Bot()

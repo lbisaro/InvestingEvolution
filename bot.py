@@ -17,9 +17,9 @@ import my_logging as mylog
 chatid = local.LOC_TLGRM_CHATID
 tb = telebot.TeleBot(local.LOC_TLGRM_TK)
 
-# tb.send_message(chatid, "Mensaje ✅ uno 🔻 dos ")
-# tb.send_message(chatid, '*Bold* _Italic_ __Underline__', parse_mode="MarkdownV2")
-# exit()
+#tb.send_message(chatid, "Mensaje ✅ uno 🔻 dos ")
+#tb.send_message(chatid, '*Bold* _Italic_ __Underline__', parse_mode="MarkdownV2")
+#exit()
 
 
 class Bot:
@@ -77,6 +77,10 @@ class Bot:
 
             """Define la señal de Compra/Venta/Neutro"""
             signal = signals.adx_alternancia(klines, self.LONG_MEDIA_VALUE)
+
+            if signal != 'NEUTRO':
+                msg_text = local.SERVER_IDENTIFIER+"\n"+self.SYMBOL+" "+binance_interval + signal
+                tb.send_message(chatid, msg_text)
 
             """Obtiene info del SYMBOL"""
             """TODO Este metodo se va a reemplazar por una consulta guardada en la cache
