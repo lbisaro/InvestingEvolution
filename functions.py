@@ -100,3 +100,17 @@ def get_interval_actual():
         whereIn = whereIn + ",'2d01'"
 
     return whereIn
+
+def create_order(client,symbol,side,type,quantity):
+    try:
+        order = client.create_order(
+                    symbol='BTCUSDT',
+                    side=client.SIDE_BUY,
+                    type='MARKET',
+                    quantity= quantity
+                    )
+        return order
+    except Exception as e:
+        msg_text = f'{e} '+ symbol+" "+client.SIDE_BUY+" "+quantity
+        mylog.error(msg_text)
+        return False
