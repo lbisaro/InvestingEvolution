@@ -121,11 +121,11 @@ class Bot:
 
 
 
-            if signal != 'NEUTRO':
-                msg_text = local.SERVER_IDENTIFIER+"\n"+self.SYMBOL+" "+binance_interval+" " + signal+\
-                            ' Balance: '+quote_asset+' '+str(quote_balance)+' - '+\
-                                         base_asset+' '+str(base_balance)
-                tb.send_message(chatid, msg_text)
+            #if signal != 'NEUTRO':
+            #    msg_text = local.SERVER_IDENTIFIER+"\n"+self.SYMBOL+" "+binance_interval+" " + signal+\
+            #                ' Balance: '+quote_asset+' '+str(quote_balance)+' - '+\
+            #                             base_asset+' '+str(base_balance)
+            #    tb.send_message(chatid, msg_text)
 
 
 
