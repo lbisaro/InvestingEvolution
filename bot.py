@@ -160,9 +160,8 @@ class Bot:
                     new_order.to_sql('bot_order', con=db.engine, index=False,if_exists='append')
 
                     #Envia mensaje a Telegram
-                    emoji = '✅'
-                    msg_text = local.SERVER_IDENTIFIER+"\n"+self.SYMBOL+" "+binance_interval + " COMPRA "+emoji+" "+str(price)+" Exc.Price "+str(executedPrice)+" "+quote_asset+" "+str(quote_buyed)
-                    tb.send_message(chatid, msg_text)
+                    msg_text = self.SYMBOL+" "+binance_interval + " COMPRA "+str(price)+" Exc.Price "+str(executedPrice)+" "+quote_asset+" "+str(quote_buyed)
+                    tb.send_message(chatid, msg_text+"\n"+local.SERVER_IDENTIFIER)
                 
             
             #Si esta comprado y hay señal de venta
@@ -196,9 +195,8 @@ class Bot:
                     new_order.to_sql('bot_order', con=db.engine, index=False,if_exists='append')
                     
                     #Envia mensaje a Telegram
-                    emoji = '🔻'
-                    msg_text = local.SERVER_IDENTIFIER+"\n"+self.SYMBOL+" "+binance_interval + " VENTA "+emoji+" "+str(price)+" Exc.Price "+str(executedPrice)+" "+quote_asset+" "+str(quote_selled)
-                    tb.send_message(chatid, msg_text)
+                    msg_text = self.SYMBOL+" "+binance_interval + " VENTA "+str(price)+" Exc.Price "+str(executedPrice)+" "+quote_asset+" "+str(quote_selled)
+                    tb.send_message(chatid, msg_text+"\n"+local.SERVER_IDENTIFIER)
 
 
 
