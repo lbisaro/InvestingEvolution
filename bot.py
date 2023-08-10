@@ -34,8 +34,8 @@ class Bot:
     
 
     def run(self,idbot):
-
-        #mylog.info("Inicio idbot:"+str(idbot))
+        tb.send_message(chatid, "Mensaje de prueba desde bisaro_notebook"+local.SERVER_IDENTIFIER)
+        
 
         """Configura el bot en funcion del parametro idbot recibido"""
         query = "SELECT * FROM bot WHERE idbot = '"+str(idbot)+"' "
