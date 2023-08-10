@@ -34,7 +34,7 @@ class Bot:
     
 
     def run(self,idbot):
-        tb.send_message(chatid, "Mensaje de prueba desde bisaro_notebook"+local.SERVER_IDENTIFIER)
+        tb.send_message(chatid, "Entra "+local.SERVER_IDENTIFIER)
         
 
         """Configura el bot en funcion del parametro idbot recibido"""
