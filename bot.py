@@ -107,7 +107,7 @@ class Bot:
             print('Balance:  ',base_asset, base_balance,quote_asset, quote_balance)
 
             #Si no esta comprado y hay señal de compra 
-            if comprado_qty == 0 and quote_balance >= self.QUOTE_TO_BUY: # and signal == 'COMPRA':
+            if comprado_qty == 0 and quote_balance >= self.QUOTE_TO_BUY and signal == 'COMPRA':
                 
                 #Calcula el precio promedio - Ver en la funcion functions.py:precio_actual que hay varias formas
                 avg_price = fn.precio_actual(self.client, self.SYMBOL)
@@ -124,7 +124,7 @@ class Bot:
                                           price)
             
             #Si esta comprado y hay señal de venta
-            elif comprado_qty > 0 and base_balance >= comprado_qty: # and signal == 'VENTA':
+            elif comprado_qty > 0 and base_balance >= comprado_qty and signal == 'VENTA':
                 
                 #Calcula el precio promedio - Ver en la funcion functions.py:precio_actual que hay varias formas
                 avg_price = fn.precio_actual(self.client, self.SYMBOL)
