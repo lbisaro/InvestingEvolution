@@ -16,11 +16,11 @@ try:
 except Exception as e:
     mylog.criticalError(f'database.py - Error de coneccion{e}')
 
-db = mysql.connector.connect(
+connection = mysql.connector.connect(
   host=local.LOC_MYSQL_H,
   user=local.LOC_MYSQL_U,
   password=local.LOC_MYSQL_P,
   database=local.LOC_MYSQL_DB
 )
 
-cursor = db.cursor()
+cursor = connection.cursor()

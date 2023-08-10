@@ -52,7 +52,7 @@ class Bot:
             self.idbot = idbot 
             self.SYMBOL = bots.iloc[0]['base_asset']+bots.iloc[0]['quote_asset']
             self.KLINE_INTERVAL = bots.iloc[0]['idinterval']
-            binance_interval = fn.get_intervals(self.KLINE_INTERVAL,'binance')
+            self.binance_interval = fn.get_intervals(self.KLINE_INTERVAL,'binance')
             self.QUOTE_QTY = bots.iloc[0]['quote_qty']
             
             prms = (bots.iloc[0]['prm_values']).split(',')
@@ -83,6 +83,7 @@ class Bot:
                     para no generar consultas excesivas a Binance, sobre datos que pueden cambiar eventualmente
             """
             self.symbol_info = fn.get_symbol_info(self.client, self.SYMBOL)
+            
 
             """Consultando balances"""
             base_asset = self.symbol_info['baseAsset']
@@ -99,6 +100,7 @@ class Bot:
             if open_pos_order['idbotorder'].count() > 1:
                 mylog.criticalError('bot.py::run() - Existe mas de una posicion de compra abierta')
             elif open_pos_order['idbotorder'].count() > 0:
+                idbotorder_master = open_pos_order.iloc[0]['idbotorder']
                 comprado_qty = comprado_qty + open_pos_order.iloc[0]['qty']
             
             print('Comprado: ',base_asset, comprado_qty)
@@ -114,7 +116,7 @@ class Bot:
                 #Calcula los parametros de la orden
                 qty = round(self.QUOTE_TO_BUY/price,self.symbol_info['qty_dec_qty'])
 
-                order = self.create_order(base_asset,
+                idbotorder = self.create_order(base_asset,
                                           quote_asset,
                                           self.SIDE_BUY,
                                           'MARKET',
@@ -131,16 +133,14 @@ class Bot:
                 #Calcula los parametros de la orden
                 qty = round((base_balance),self.symbol_info['qty_dec_qty'])
                 
-                """
-                order = self.create_order(self.client,
-                                        self.SYMBOL,
-                                        self.client.SIDE_SELL,
-                                        'MARKET',
-                                        qty)                
-                """
-
-
-
+                idbotorder = self.create_order(base_asset,
+                                                quote_asset,
+                                                self.SIDE_SELL,
+                                                'MARKET',
+                                                qty,
+                                                price)                
+                idbotorders_child = [idbotorder]
+                self.close_position(idbotorder_master,idbotorders_child)
 
             """TODO
 
@@ -166,7 +166,7 @@ class Bot:
             side = self.client.SIDE_BUY
         elif idside == self.SIDE_SELL:
             side = self.client.SIDE_SELL
-        #try:
+        
         if operaBinance:
             order = self.client.create_order(
                         symbol=symbol,
@@ -184,18 +184,23 @@ class Bot:
                 qty = round(float(order['executedQty']),self.symbol_info['qty_dec_qty'])
         
         #Guarda al orden en la DB
-        sql = "INSERT INTO bot_order (idbot,base_asset,quote_asset,side,completed,qty,price,orderId) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)"
         idbot = self.idbot
-        print(idbot)     
-        values = (idbot,base_asset,quote_asset,idside,completed,float(qty),float(price),orderId)
-        res = db.cursor.execute(sql,values)
-        print(res)
-        #Envia mensaje a Telegram
-        #msg_text = self.SYMBOL+" "+binance_interval + " COMPRA "+str(price)+" Exc.Price "+str(executedPrice)+" "+quote_asset+" "+str(quote_buyed)
-        #tb.send_message(chatid, msg_text+"\n"+local.SERVER_IDENTIFIER)
-
-        return order
+        sql = "INSERT INTO bot_order (idbot,base_asset,quote_asset,side,completed,qty,price,orderId) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)"
+        values = (idbot,base_asset,quote_asset,idside,completed,qty,price,orderId)
+        db.cursor.execute(sql,values)
+        db.connection.commit()
+        idbotorder = db.cursor.lastrowid
         
-        #except Exception as e:
-        #    mylog.error(e)
-        #    return False
+        #Envia mensaje a Telegram
+        msg_text = self.SYMBOL+" "+self.binance_interval + " "+side+" "+str(price)+" Exc.Price "+str(price)+" "+quote_asset+" "+str(round(price*qty,2))
+        tb.send_message(chatid, msg_text+"\n"+local.SERVER_IDENTIFIER)
+
+        return idbotorder
+    
+    def close_position(self,idbotorder_master,idbotorders_child):
+        whereIn = str(idbotorder_master)
+        for idbotorder in idbotorders_child:
+            whereIn += ','+str(idbotorder) 
+        sql = "UPDATE bot_order SET pos_idbotorder = '"+str(idbotorder_master)+"' WHERE idbotorder in ("+whereIn+")"
+        db.cursor.execute(sql)
+        db.connection.commit()
