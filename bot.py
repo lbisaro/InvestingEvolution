@@ -35,7 +35,7 @@ class Bot:
 
     def run(self,idbot):
         tb.send_message(chatid, "Entra "+local.SERVER_IDENTIFIER)
-        
+        mylog.info('Inicia bot '+str(idbot))
 
         """Configura el bot en funcion del parametro idbot recibido"""
         query = "SELECT * FROM bot WHERE idbot = '"+str(idbot)+"' "
