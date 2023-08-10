@@ -1,6 +1,7 @@
 import math
 from datetime import datetime
 import my_logging as mylog
+import database
 import pandas as pd
 
 
@@ -101,16 +102,3 @@ def get_interval_actual():
 
     return whereIn
 
-def create_order(client,symbol,side,type,quantity):
-    try:
-        order = client.create_order(
-                    symbol=symbol,
-                    side=side,
-                    type=type,
-                    quantity= quantity
-                    )
-        return order
-    except Exception as e:
-        msg_text = f'{e} '+ symbol+" "+side+" "+quantity
-        mylog.error(msg_text)
-        return False

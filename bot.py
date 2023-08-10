@@ -48,8 +48,8 @@ class Bot:
             if np.int64(bots.iloc[0]['idestrategia']) != self.VALID_IDESTRATEGIA:
                 mylog.error("Bot::run(idbot="+str(idbot)+") idestrategia erronea")
                 return False
-            
-            self.idbot = idbot            
+            idbot = idbot.item()
+            self.idbot = idbot 
             self.SYMBOL = bots.iloc[0]['base_asset']+bots.iloc[0]['quote_asset']
             self.KLINE_INTERVAL = bots.iloc[0]['idinterval']
             binance_interval = fn.get_intervals(self.KLINE_INTERVAL,'binance')
@@ -82,121 +82,62 @@ class Bot:
             """TODO Este metodo se va a reemplazar por una consulta guardada en la cache
                     para no generar consultas excesivas a Binance, sobre datos que pueden cambiar eventualmente
             """
-            symbol_info = fn.get_symbol_info(self.client, self.SYMBOL)
+            self.symbol_info = fn.get_symbol_info(self.client, self.SYMBOL)
 
-            """Obtiene el balance que existe para cada asset
-               Esto se utiliza actualmente cuando aparece una señal de venta
-               Por el momento vende todo lo que hay en el balance del base_asset
-               Pero en el futuro tiene que vender lo que se haya comprado
-               obteniendo la cantidad de token de las ordenes registradas en la DB 
-            """
-            base_asset = symbol_info['baseAsset']
-            quote_asset = symbol_info['quoteAsset']
+            """Consultando balances"""
+            base_asset = self.symbol_info['baseAsset']
+            quote_asset = self.symbol_info['quoteAsset']
             quote_balance = round(float(self.client.get_asset_balance(asset=quote_asset)['free']), 2)
-            print('quote_balance',quote_asset,quote_balance)
-            base_balance = round(float(self.client.get_asset_balance(asset=base_asset)['free']), symbol_info['qty_dec_qty'])
-            print('base_balance',base_asset,base_balance)
+            base_balance = round(float(self.client.get_asset_balance(asset=base_asset)['free']), self.symbol_info['qty_dec_qty'])
+            
+            """Consultando posiciones de compra abiertas"""
+            comprado_qty = 0
+            query = "SELECT * FROM bot_order WHERE idbot = "+str(idbot)+" AND side = "+str(self.SIDE_BUY)+" AND pos_idbotorder = 0"
+            open_pos_order = pd.read_sql(sql=query, con=db.engine)
 
-            """ TODO Esto queda pendiente para calcular lo que hay comprado desde la DB
-                En la testnet se recalcula el balance cada tanto y ppuede no coincidir con 
-                las ordenes de compra y venta registradas
-            """
-            #query = "SELECT * FROM bot_order WHERE idbot = 1 AND completed = 0"
-            #open_orders = pd.read_sql(sql=query, con=db.engine)
-            #comprado_qty = 0
-            #comprado_quote = 0
-            #if open_orders['idbotorder'].count() > 0:
-            #    for i in open_orders.index:
-            #        if open_orders.loc[i]['side'] == self.SIDE_BUY:
-            #            comprado_qty = comprado_qty + open_orders.loc[i]['origQty']
-            #            comprado_quote = comprado_quote + open_orders.loc[i]['origQty'] * open_orders.loc[i]['price']
-            #        if open_orders.loc[i]['side'] == self.SIDE_SELL:
-            #            comprado_qty = comprado_qty - open_orders.loc[i]['origQty']
-            #            comprado_quote = comprado_quote - open_orders.loc[i]['origQty'] * open_orders.loc[i]['price']
-            #print('comprado: ',base_asset, comprado_qty, quote_asset,comprado_quote)
-
-            #Crea un dataframe con una orden de compra/venta con valores por default
-            new_order = pd.DataFrame([[self.idbot,base_asset,quote_asset]],columns=['idbot','base_asset','quote_asset'])
-
-
-
-
-            #if signal != 'NEUTRO':
-            #    msg_text = local.SERVER_IDENTIFIER+"\n"+self.SYMBOL+" "+binance_interval+" " + signal+\
-            #                ' Balance: '+quote_asset+' '+str(quote_balance)+' - '+\
-            #                             base_asset+' '+str(base_balance)
-            #    tb.send_message(chatid, msg_text)
-
-
+            
+            if open_pos_order['idbotorder'].count() > 1:
+                mylog.criticalError('bot.py::run() - Existe mas de una posicion de compra abierta')
+            elif open_pos_order['idbotorder'].count() > 0:
+                comprado_qty = comprado_qty + open_pos_order.iloc[0]['qty']
+            
+            print('Comprado: ',base_asset, comprado_qty)
+            print('Balance:  ',base_asset, base_balance,quote_asset, quote_balance)
 
             #Si no esta comprado y hay señal de compra 
-            if base_balance == 0 and signal == 'COMPRA':
+            if comprado_qty == 0 and quote_balance >= self.QUOTE_TO_BUY: # and signal == 'COMPRA':
                 
                 #Calcula el precio promedio - Ver en la funcion functions.py:precio_actual que hay varias formas
                 avg_price = fn.precio_actual(self.client, self.SYMBOL)
-                price = round(avg_price, symbol_info['qty_dec_price'])
+                price = round(avg_price, self.symbol_info['qty_dec_price'])
 
                 #Calcula los parametros de la orden
-                origQty = round(self.QUOTE_TO_BUY/price,symbol_info['qty_dec_qty'])
-                new_order['side'] = self.SIDE_BUY
-                new_order['origQty'] = origQty
-                new_order['orderId'] = ''
-                new_order['completed'] = 0
-                order = fn.create_order(self.client,
-                                        self.SYMBOL,
-                                        self.client.SIDE_BUY,
-                                        'MARKET',
-                                        origQty)
-                if order:
-                    #Obtiene los resultados de la orden
-                    new_order['orderId'] = order['orderId']
-                    executedPrice = round(float(order['cummulativeQuoteQty'])/float(order['executedQty']),symbol_info['qty_dec_price'])
-                    new_order['price'] = executedPrice
-                    new_order['origQty'] = round(float(order['executedQty']),symbol_info['qty_dec_qty'])
-                    new_order['completed'] = 1
-                    quote_buyed = round(executedPrice*float(order['executedQty']),2)
-                    
-                    #Guarda al orden en la DB
-                    new_order.to_sql('bot_order', con=db.engine, index=False,if_exists='append')
+                qty = round(self.QUOTE_TO_BUY/price,self.symbol_info['qty_dec_qty'])
 
-                    #Envia mensaje a Telegram
-                    msg_text = self.SYMBOL+" "+binance_interval + " COMPRA "+str(price)+" Exc.Price "+str(executedPrice)+" "+quote_asset+" "+str(quote_buyed)
-                    tb.send_message(chatid, msg_text+"\n"+local.SERVER_IDENTIFIER)
-                
+                order = self.create_order(base_asset,
+                                          quote_asset,
+                                          self.SIDE_BUY,
+                                          'MARKET',
+                                          qty,
+                                          price)
             
             #Si esta comprado y hay señal de venta
-            elif base_balance > 0 and signal == 'VENTA':
-
+            elif comprado_qty > 0 and base_balance >= comprado_qty: # and signal == 'VENTA':
+                
                 #Calcula el precio promedio - Ver en la funcion functions.py:precio_actual que hay varias formas
                 avg_price = fn.precio_actual(self.client, self.SYMBOL)
-                price = round(avg_price, symbol_info['qty_dec_price'])
+                price = round(avg_price, self.symbol_info['qty_dec_price'])
 
                 #Calcula los parametros de la orden
-                origQty = round((base_balance),symbol_info['qty_dec_qty'])
-                new_order['side'] = self.SIDE_SELL
-                new_order['origQty'] = origQty
-                new_order['orderId'] = ''
-                new_order['completed'] = 0
-                order = fn.create_order(self.client,
+                qty = round((base_balance),self.symbol_info['qty_dec_qty'])
+                
+                """
+                order = self.create_order(self.client,
                                         self.SYMBOL,
                                         self.client.SIDE_SELL,
                                         'MARKET',
-                                        origQty)                
-                if order:
-                    #Obtiene los resultados de la orden
-                    new_order['orderId'] = order['orderId']
-                    executedPrice = round(float(order['cummulativeQuoteQty'])/float(order['executedQty']),symbol_info['qty_dec_price'])
-                    new_order['price'] = executedPrice
-                    new_order['origQty'] = round(float(order['executedQty']),symbol_info['qty_dec_qty'])
-                    new_order['completed'] = 1
-                    quote_selled = round(executedPrice*float(order['executedQty']),2)
-                    
-                    #Guarda al orden en la DB
-                    new_order.to_sql('bot_order', con=db.engine, index=False,if_exists='append')
-                    
-                    #Envia mensaje a Telegram
-                    msg_text = self.SYMBOL+" "+binance_interval + " VENTA "+str(price)+" Exc.Price "+str(executedPrice)+" "+quote_asset+" "+str(quote_selled)
-                    tb.send_message(chatid, msg_text+"\n"+local.SERVER_IDENTIFIER)
+                                        qty)                
+                """
 
 
 
@@ -212,3 +153,49 @@ class Bot:
 
         else:
             mylog.error('Bot::start - No fue posible actualizar las velas')
+
+    def create_order(self,base_asset,quote_asset,idside,type,qty,price):
+        symbol = base_asset+quote_asset
+        completed = 0
+        order = False
+        orderId = '_NOBINANCE_'
+
+        operaBinance = True
+
+        if idside == self.SIDE_BUY:
+            side = self.client.SIDE_BUY
+        elif idside == self.SIDE_SELL:
+            side = self.client.SIDE_SELL
+        #try:
+        if operaBinance:
+            order = self.client.create_order(
+                        symbol=symbol,
+                        side=side,
+                        type=type,
+                        quantity= qty
+                        )
+            
+            if order:
+                
+                if order['status']=='FILLED':
+                    completed = 1
+                orderId = order['orderId']
+                price = round(float(order['cummulativeQuoteQty'])/float(order['executedQty']),self.symbol_info['qty_dec_price'])
+                qty = round(float(order['executedQty']),self.symbol_info['qty_dec_qty'])
+        
+        #Guarda al orden en la DB
+        sql = "INSERT INTO bot_order (idbot,base_asset,quote_asset,side,completed,qty,price,orderId) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)"
+        idbot = self.idbot
+        print(idbot)     
+        values = (idbot,base_asset,quote_asset,idside,completed,float(qty),float(price),orderId)
+        res = db.cursor.execute(sql,values)
+        print(res)
+        #Envia mensaje a Telegram
+        #msg_text = self.SYMBOL+" "+binance_interval + " COMPRA "+str(price)+" Exc.Price "+str(executedPrice)+" "+quote_asset+" "+str(quote_buyed)
+        #tb.send_message(chatid, msg_text+"\n"+local.SERVER_IDENTIFIER)
+
+        return order
+        
+        #except Exception as e:
+        #    mylog.error(e)
+        #    return False

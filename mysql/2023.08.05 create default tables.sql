@@ -29,7 +29,7 @@ CREATE TABLE `bot_order` (
   `quote_asset` varchar(14) NOT NULL,
   `side` tinyint(1) NOT NULL,
   `completed` tinyint(1) NOT NULL DEFAULT 0,
-  `origQty` decimal(15,8) NOT NULL,
+  `qty` decimal(15,8) NOT NULL,
   `price` decimal(15,8) NOT NULL,
   `orderId` varchar(20) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;

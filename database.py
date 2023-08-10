@@ -1,5 +1,6 @@
 import local__config as local
 import my_logging as mylog
+import mysql.connector
 from sqlalchemy import create_engine
 import pandas as pd
 
@@ -14,3 +15,12 @@ try:
     bots = pd.read_sql(sql=query, con=engine)
 except Exception as e:
     mylog.criticalError(f'database.py - Error de coneccion{e}')
+
+db = mysql.connector.connect(
+  host=local.LOC_MYSQL_H,
+  user=local.LOC_MYSQL_U,
+  password=local.LOC_MYSQL_P,
+  database=local.LOC_MYSQL_DB
+)
+
+cursor = db.cursor()

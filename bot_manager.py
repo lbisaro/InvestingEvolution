@@ -23,22 +23,22 @@ Agregar filtros en el loop:
 
 whereIn = fn.get_interval_actual()
 
-try:
-    #Busca los Bots registrados en la DB
-    query = "SELECT * FROM bot WHERE idinterval in ("+whereIn+")"
-    bots = pd.read_sql(sql=query, con=db.engine)
-    if bots['idbot'].count() > 0:
-        for i in bots.index:
-            idbot = bots.loc[i]['idbot']
-            
-            #Si el bot listado coincide con la estrategia, lo ejecuta
-            if np.int64(bots.loc[i]['idestrategia']) == 1:
-                BOT = bot.Bot()
-                BOT.run(idbot)
-                del BOT
+#try:
+#Busca los Bots registrados en la DB
+query = "SELECT * FROM bot WHERE idinterval in ("+whereIn+")"
+bots = pd.read_sql(sql=query, con=db.engine)
+if bots['idbot'].count() > 0:
+    for i in bots.index:
+        idbot = bots.loc[i]['idbot']
+        
+        #Si el bot listado coincide con la estrategia, lo ejecuta
+        if np.int64(bots.loc[i]['idestrategia']) == 1:
+            BOT = bot.Bot()
+            BOT.run(idbot)
+            del BOT
 
-except Exception as e:
-    mylog.criticalError(f'bot_manager.py - No fue posible acceder a la lista de bots {e}')
+#except Exception as e:
+#    mylog.criticalError(f'bot_manager.py - No fue posible acceder a la lista de bots {e}')
     
 
 
