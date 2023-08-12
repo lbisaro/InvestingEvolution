@@ -11,11 +11,12 @@ from datetime import datetime, timedelta
 import telebot
 from binance.client import Client
 import my_logging as mylog
+import my_logging_klines as kline_log
 
 
 # Conectar con Telegram
-chatid = local.LOC_TLGRM_CHATID
-tb = telebot.TeleBot(local.LOC_TLGRM_TK)
+chatid = local.TLGMR_CHANNELID
+tb = telebot.TeleBot(local.TLGMR_CHANNELID)
 
 #tb.send_message(chatid, "Mensaje ✅ uno 🔻 dos ")
 #tb.send_message(chatid, '*Bold* _Italic_ __Underline__', parse_mode="MarkdownV2")
@@ -35,7 +36,7 @@ class Bot:
 
     def run(self,idbot):
         #tb.send_message(chatid, "Entra "+local.SERVER_IDENTIFIER)
-        mylog.info('Inicia bot '+str(idbot))
+        #mylog.info('Inicia bot '+str(idbot))
 
         """Configura el bot en funcion del parametro idbot recibido"""
         query = "SELECT * FROM bot WHERE idbot = '"+str(idbot)+"' "
@@ -73,10 +74,11 @@ class Bot:
         if kline.update(self.SYMBOL):
 
             """Obtiene velas de la DB """
-            klines = kline.get(self.SYMBOL, self.KLINE_INTERVAL, self.VELAS_PREVIAS)
+            klines = kline.get(self.SYMBOL, self.KLINE_INTERVAL, self.VELAS_PREVIAS+self.LONG_MEDIA_VALUE)
 
             """Define la señal de Compra/Venta/Neutro"""
-            signal = signals.adx_alternancia(klines, self.LONG_MEDIA_VALUE)
+            dfSignal = signals.adx_alternancia(klines, self.LONG_MEDIA_VALUE)
+            signal = dfSignal['signal']
 
             """Obtiene info del SYMBOL"""
             """TODO Este metodo se va a reemplazar por una consulta guardada en la cache
@@ -106,6 +108,8 @@ class Bot:
             print('Comprado: ',base_asset, comprado_qty)
             print('Balance:  ',base_asset, base_balance,quote_asset, quote_balance)
 
+            idbotorder = None
+            op_price = None
             #Si no esta comprado y hay señal de compra 
             if comprado_qty == 0 and quote_balance >= self.QUOTE_TO_BUY and signal == 'COMPRA':
                 
@@ -122,7 +126,7 @@ class Bot:
                                           'MARKET',
                                           qty,
                                           price)
-            
+                op_price = -price
             #Si esta comprado y hay señal de venta
             elif comprado_qty > 0 and base_balance >= comprado_qty and signal == 'VENTA':
                 
@@ -141,6 +145,25 @@ class Bot:
                                                 price)                
                 idbotorders_child = [idbotorder]
                 self.close_position(idbotorder_master,idbotorders_child)
+                op_price = price
+            
+            alternancia = 'No'
+            if dfSignal['volume']:
+                alternancia = 'Si'
+            msg_kline = (datetime.utcnow() - timedelta(hours = 3) ).strftime('%Y-%m-%d %H:%M')
+            msg_kline += ';'+self.SYMBOL
+            msg_kline += ';'+str(dfSignal['close'])
+            msg_kline += ';'+str(dfSignal['volume'])
+            msg_kline += ';'+str(round(dfSignal['ADX'],2))
+            msg_kline += ';'+str(round(dfSignal['ADX+'],2))
+            msg_kline += ';'+str(round(dfSignal['ADX-'],2))
+            msg_kline += ';'+alternancia+';'
+            msg_kline += dfSignal['signal']
+            msg_kline += ';'+str(idbotorder)
+            msg_kline += ';'+str(op_price)
+            msg_kline += ';'
+            kline_log.send(msg_kline)
+            
 
             """TODO
 
@@ -160,7 +183,7 @@ class Bot:
         order = False
         orderId = '_NOBINANCE_'
 
-        operaBinance = True
+        operaBinance = False
 
         if idside == self.SIDE_BUY:
             side = self.client.SIDE_BUY
@@ -192,8 +215,8 @@ class Bot:
         idbotorder = db.cursor.lastrowid
         
         #Envia mensaje a Telegram
-        msg_text = self.SYMBOL+" "+self.binance_interval + " "+side+" "+str(price)+" Exc.Price "+str(price)+" "+quote_asset+" "+str(round(price*qty,2))
-        tb.send_message(chatid, msg_text+"\n"+local.SERVER_IDENTIFIER)
+        # msg_text = self.SYMBOL+" "+self.binance_interval + " "+side+" "+str(price)+" Exc.Price "+str(price)+" "+quote_asset+" "+str(round(price*qty,2))
+        # tb.send_message(chatid, msg_text+"\n"+local.SERVER_IDENTIFIER)
 
         return idbotorder
     
